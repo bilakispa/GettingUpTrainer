@@ -13,12 +13,14 @@ namespace GettingUpTrainer
 {
     public partial class Overlay : Form
     {
-        static string MODULE_RHAPSODY_NAME = "G_rhapsody.sgl";
+        //static string MODULE_RHAPSODY_NAME = "G_rhapsody.sgl";
+        static string MODULE_GCORE_DLL = "GCore.dll";
 
         // Process
         private Process _process = null;
         private IntPtr _handle;
-        private IntPtr _rhapsodyModule = (IntPtr)0;
+        private IntPtr _ModuleRhapsody = (IntPtr)0;
+        private IntPtr _ModuleGCore = (IntPtr)0;
         private Thread _updateStream = null, _windowStream = null;
 
         // Keys Control
@@ -67,8 +69,10 @@ namespace GettingUpTrainer
             Thread.Sleep(5000); //Bug fix for trying to get ProcessModuleCollection too early
             //Get Module's base address
             foreach (ProcessModule procModule in _process.Modules) {
-                if (procModule.ModuleName == MODULE_RHAPSODY_NAME)
-                    _rhapsodyModule = procModule.BaseAddress;
+                //if (procModule.ModuleName == MODULE_RHAPSODY_NAME)
+                //    _ModuleRhapsody = procModule.BaseAddress;
+                if (procModule.ModuleName == MODULE_GCORE_DLL)
+                    _ModuleGCore = procModule.BaseAddress;
             }
             
 
@@ -221,35 +225,35 @@ namespace GettingUpTrainer
 
         private void ReadGameMemory()
         {
-            Int32 spawnedActors = Memory.Read<Int32>(_rhapsodyModule.ToInt32() + GameOffsets.ACTORS_SPAWNED);
+            Int32 ptrCharacters = Memory.Read<Int32>(_ModuleGCore.ToInt32() + PointerOffsets.CHARACTER_BASE);
+            if (!Memory.IsValid(ptrCharacters))
+                return;
 
+            Int32 spawnedActors = Memory.Read<Int32>(ptrCharacters + PointerOffsets.ACTORS_SPAWNED);
+            
             if (spawnedActors > 0) {
-                Int32 ptrActors = Memory.Read<Int32>(_rhapsodyModule.ToInt32() + GameOffsets.ACTOR_BASE);
+                int ptrActors = Memory.Read<Int32>(ptrCharacters + PointerOffsets.ACTORS);
                 if (!Memory.IsValid(ptrActors))
                     return;
 
-                //add those to a struct
-                Int32[] ptrActorBase = new Int32[spawnedActors];
-                Int32[] ptrActorStats = new Int32[spawnedActors];
-                float[] actorCurrentHealth = new float[spawnedActors];
-                float[] actorMaxHealth = new float[spawnedActors];
-                float[] actorPositionX = new float[spawnedActors];
-                float[] actorPositionY = new float[spawnedActors];
-                float[] actorPositionZ = new float[spawnedActors];
-                for (int i = 0; i < spawnedActors - 1; i++) {
-                    ptrActorBase[i] = Memory.Read<Int32>(ptrActors + i * 4); //0x0 = PlayerBase, 0x4 = EnemyBase 1, etc
-                    if (!Memory.IsValid(ptrActorBase[i]))
+                //Get every Actor's addresses
+                Actor[] actors = new Actor[spawnedActors];
+                for(int i=0; i<spawnedActors; i++) {
+                    //Get Actor Base Pointer
+                    actors[i].pActor = Memory.Read<Int32>(ptrActors + (PointerOffsets.ACTOR_BASE + i * 4));
+                    if (!Memory.IsValid(actors[i].pActor))
                         return;
 
-                    ptrActorStats[i] = Memory.Read<Int32>(ptrActorBase[i] + GameOffsets.ACTOR_STATS);
-                    if (!Memory.IsValid(ptrActorStats[i]))
+                    //Get Actor's Stats Pointer
+                    actors[i].pStats = Memory.Read<Int32>(actors[i].pActor + PointerOffsets.ACTOR_STATS);
+                    if (!Memory.IsValid(actors[i].pStats))
                         return;
-
-                    actorCurrentHealth[i] = Memory.Read<float>(ptrActorStats[i] + GameOffsets.ACTOR_CURRENT_HEALTH);
-                    actorMaxHealth[i] = Memory.Read<float>(ptrActorStats[i] + GameOffsets.ACTOR_MAX_HEALTH);
-                    actorPositionX[i] = Memory.Read<float>(ptrActorStats[i] + GameOffsets.ACTOR_POSITION_X);
-                    actorPositionY[i] = Memory.Read<float>(ptrActorStats[i] + GameOffsets.ACTOR_POSITION_Y);
-                    actorPositionZ[i] = Memory.Read<float>(ptrActorStats[i] + GameOffsets.ACTOR_POSITION_Z);
+                    
+                    actors[i].CurrentHealth = Memory.Read<float>(actors[i].pStats + PointerOffsets.ACTOR_CURRENT_HEALTH);
+                    actors[i].MaxHealth = Memory.Read<float>(actors[i].pStats + PointerOffsets.ACTOR_MAX_HEALTH);
+                    actors[i].PositionX = Memory.Read<float>(actors[i].pStats + PointerOffsets.ACTOR_POSITION_X);
+                    actors[i].PositionY = Memory.Read<float>(actors[i].pStats + PointerOffsets.ACTOR_POSITION_Y);
+                    actors[i].PositionZ = Memory.Read<float>(actors[i].pStats + PointerOffsets.ACTOR_POSITION_Z);
                 }
 
                 //Show Values
@@ -257,9 +261,9 @@ namespace GettingUpTrainer
                 if (_drawEnemyStats) {
                     for (int i = spawnedActors - 1; i >= 1; i--) {
                         _solidColorBrush.Color = _colorWhite;
-                        DrawText("[Position] X: " + actorPositionX[i].ToString("F") + " Y: " + actorPositionY[i].ToString("F") + " Z: " + actorPositionZ[i].ToString("F"), _rect.Left, currentY);
+                        DrawText("[Position] X: " + actors[i].PositionX.ToString("F") + " Y: " + actors[i].PositionY.ToString("F") + " Z: " + actors[i].PositionZ.ToString("F"), _rect.Left, currentY);
                         currentY -= (int)_font.FontSize;
-                        DrawText("[Health] Current:" + actorCurrentHealth[i].ToString("F") + " Max: " + actorMaxHealth[i].ToString("F"), _rect.Left, currentY);
+                        DrawText("[Health] Current:" + actors[i].CurrentHealth.ToString("F") + " Max: " + actors[i].MaxHealth.ToString("F"), _rect.Left, currentY);
                         currentY -= (int)_font.FontSize;
                         DrawText("(Enemy " + i + ")", _rect.Left, currentY, _colorGreen);
                         currentY -= (int)(2* _font.FontSize);
@@ -268,9 +272,9 @@ namespace GettingUpTrainer
 
                 if (_drawPlayerStats) {
                     _solidColorBrush.Color = _colorWhite;
-                    DrawText("[Position] X: " + actorPositionX[0].ToString("F") + " Y: " + actorPositionY[0].ToString("F") + " Z: " + actorPositionZ[0].ToString("F"), _rect.Left, currentY);
+                    DrawText("[Position] X: " + actors[0].PositionX.ToString("F") + " Y: " + actors[0].PositionY.ToString("F") + " Z: " + actors[0].PositionZ.ToString("F"), _rect.Left, currentY);
                     currentY -= (int)_font.FontSize;
-                    DrawText("[Health] Current:" + actorCurrentHealth[0].ToString("F") + " Max: " + actorMaxHealth[0].ToString("F"), _rect.Left, currentY);
+                    DrawText("[Health] Current:" + actors[0].CurrentHealth.ToString("F") + " Max: " + actors[0].MaxHealth.ToString("F"), _rect.Left, currentY);
                     currentY -= (int)_font.FontSize;
                     DrawText("(Player)", _rect.Left, currentY, _colorGold);
                 }
