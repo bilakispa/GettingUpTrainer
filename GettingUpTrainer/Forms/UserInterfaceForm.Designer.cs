@@ -112,7 +112,7 @@ namespace GettingUpTrainer
 			this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.lblAppStatusLabel,
             this.lblAppStatusValue});
-			this.statusStrip.Location = new System.Drawing.Point(0, 650);
+			this.statusStrip.Location = new System.Drawing.Point(0, 490);
 			this.statusStrip.Name = "statusStrip";
 			this.statusStrip.Size = new System.Drawing.Size(389, 22);
 			this.statusStrip.SizingGrip = false;
@@ -171,7 +171,7 @@ namespace GettingUpTrainer
 			this.pnlEnemySelected.Enabled = false;
 			this.pnlEnemySelected.Location = new System.Drawing.Point(1, 52);
 			this.pnlEnemySelected.Name = "pnlEnemySelected";
-			this.pnlEnemySelected.Size = new System.Drawing.Size(369, 133);
+			this.pnlEnemySelected.Size = new System.Drawing.Size(366, 133);
 			this.pnlEnemySelected.TabIndex = 5;
 			// 
 			// btnEnemyPosition
@@ -736,7 +736,7 @@ namespace GettingUpTrainer
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(389, 672);
+			this.ClientSize = new System.Drawing.Size(389, 512);
 			this.Controls.Add(this.gbPlayer);
 			this.Controls.Add(this.gbEnemy);
 			this.Controls.Add(this.statusStrip);
