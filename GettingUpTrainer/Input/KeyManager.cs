@@ -78,7 +78,7 @@ namespace GettingUpTrainer
                     List<Key> keysData = new List<Key>(keys.Values);
                     if (keysData != null && keysData.Count > 0) {
                         foreach (Key key in keysData) {
-                            if (Convert.ToBoolean(Imports.GetKeyState(key.Id) & Imports.KEY_PRESSED)) {
+                            if (Convert.ToBoolean(Hook.GetKeyState(key.Id) & (int)Hook.KEYS.KEY_PRESSED)) {
                                 if (!key.IsKeyDown) {
                                     key.IsKeyDown = true;
                                     OnKeyDown(key.Id, key.Name);
