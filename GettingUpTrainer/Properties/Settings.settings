@@ -1,7 +1,33 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
-<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)">
-  <Profiles>
-    <Profile Name="(Default)" />
-  </Profiles>
-  <Settings />
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="GettingUpTrainer.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="AppVersion" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">2.1</Value>
+    </Setting>
+    <Setting Name="HotkeyPlayerHealth" Type="GettingUpTrainer.Key" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="HotkeyPlayerPower" Type="GettingUpTrainer.Key" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="HotkeyPlayerRep" Type="GettingUpTrainer.Key" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="HotkeyPlayerPosition" Type="GettingUpTrainer.Key" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="HotkeyEnemyHealth" Type="GettingUpTrainer.Key" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="HotkeyEnemyPosition" Type="GettingUpTrainer.Key" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="PlayerPositions" Type="GettingUpTrainer.PlayerPositionCollection" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="HotkeyPedestrianPosition" Type="GettingUpTrainer.Key" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+  </Settings>
 </SettingsFile>

@@ -23,6 +23,21 @@ namespace GettingUpTrainer
 		private Character _player = new Character();
 		private int _enemySelectedIndex = -1;
 		private List<Character> _enemyList = new List<Character>();
+		private int _pedestrianSelectedIndex = -1;
+		private List<Pedestrian> _pedestrianList = new List<Pedestrian>();
+		private General _general = new General();
+
+		public int EnemySelectedIndex
+		{
+			get { return _enemySelectedIndex; }
+			set { _enemySelectedIndex = value; }
+		}
+
+		public int PedestrianSelectedIndex
+		{
+			get { return _pedestrianSelectedIndex; }
+			set { _pedestrianSelectedIndex = value; }
+		}
 
 		public GameMemory()
 		{
@@ -133,6 +148,8 @@ namespace GettingUpTrainer
 			if (_moduleGCore == IntPtr.Zero) {
 				_player.Clear();
 				_enemyList.Clear();
+				_pedestrianList.Clear();
+				_general.Clear();
 				return;
 			}
 
@@ -140,6 +157,8 @@ namespace GettingUpTrainer
 			if (instanceManager == IntPtr.Zero) {
 				_player.Clear();
 				_enemyList.Clear();
+				_pedestrianList.Clear();
+				_general.Clear();
 				return;
 			}
 
@@ -147,76 +166,165 @@ namespace GettingUpTrainer
 			if (characterManagerArray == IntPtr.Zero) {
 				_player.Clear();
 				_enemyList.Clear();
+			} else {
+				// Get every Characters's addresses
+				int charactersSpawned = ReadFromMemory<int>(instanceManager, (int)Offsets.InstanceManager.CHARACTERS_SPAWNED);
+				for (int i = 0; i < charactersSpawned; i++) {
+					int characterOffset = i * 4;
+					IntPtr characterManager = ReadFromMemory<IntPtr>(characterManagerArray, characterOffset);
+					if (characterManager == IntPtr.Zero) {
+						charactersSpawned = i;
+						if (i == 0) {
+							_player.Clear();
+						}
+						break;
+					}
+
+					Character character = new Character();
+					character.BaseAddress = ReadFromMemory<IntPtr>(characterManager, (int)Offsets.CharacterManager.CHARACTER);
+					if (character.BaseAddress == IntPtr.Zero) {
+						break;
+					}
+
+					IntPtr offsetAddress;
+					// Model Name
+					offsetAddress = character.GetOffsetAddress((int)Offsets.Character.MODEL_NAME);
+					character.ModelName = new Pointer<string>(offsetAddress, ReadStringFromMemory(offsetAddress));
+
+					// Health
+					offsetAddress = character.GetOffsetAddress((int)Offsets.Character.HEALTH_CURRENT);
+					character.HealthCurrent = new Pointer<float?>(offsetAddress, ReadFromMemory<float>(offsetAddress));
+					offsetAddress = character.GetOffsetAddress((int)Offsets.Character.HEALTH_MAX);
+					character.HealthMax = new Pointer<float?>(offsetAddress, ReadFromMemory<float>(offsetAddress));
+
+					// Power
+					offsetAddress = character.GetOffsetAddress((int)Offsets.Character.POWER_CURRENT);
+					character.PowerCurrent = new Pointer<float?>(offsetAddress, ReadFromMemory<float>(offsetAddress));
+					offsetAddress = character.GetOffsetAddress((int)Offsets.Character.POWER_MAX);
+					character.PowerMax = new Pointer<float?>(offsetAddress, ReadFromMemory<float>(offsetAddress));
+
+					// Rep
+					offsetAddress = character.GetOffsetAddress((int)Offsets.Character.REP_CURRENT);
+					character.RepCurrent = new Pointer<int?>(offsetAddress, ReadFromMemory<int>(offsetAddress));
+					offsetAddress = character.GetOffsetAddress((int)Offsets.Character.REP_MAX);
+					character.RepMax = new Pointer<int?>(offsetAddress, ReadFromMemory<int>(offsetAddress));
+
+					// Position
+					offsetAddress = character.GetOffsetAddress((int)Offsets.Character.TRANSFORM_POSITION_X);
+					character.PositionX = new Pointer<float?>(offsetAddress, ReadFromMemory<float>(offsetAddress));
+					offsetAddress = character.GetOffsetAddress((int)Offsets.Character.TRANSFORM_POSITION_Y);
+					character.PositionY = new Pointer<float?>(offsetAddress, ReadFromMemory<float>(offsetAddress));
+					offsetAddress = character.GetOffsetAddress((int)Offsets.Character.TRANSFORM_POSITION_Z);
+					character.PositionZ = new Pointer<float?>(offsetAddress, ReadFromMemory<float>(offsetAddress));
+
+					// Rotation
+					offsetAddress = character.GetOffsetAddress((int)Offsets.Character.ROTATION_YAW);
+					character.RotationYaw = new Pointer<float?>(offsetAddress, ReadFromMemory<float>(offsetAddress));
+
+					if (i == 0) { // Add player
+						_player = character;
+					}
+					else { // Add enemy to list
+						if (_enemyList.Count <= i - 1) {
+							_enemyList.Add(character);
+						}
+						else {
+							_enemyList[i - 1] = character;
+						}
+					}
+				}
+
+				// Remove any extra enemy actors left
+				int enemySpawnedCount = charactersSpawned > 0 ? charactersSpawned - 1 : 0;
+				for (int i = enemySpawnedCount; i < _enemyList.Count; i++) {
+					_enemyList.RemoveAt(i);
+				}
+			}
+
+			// Get pedestrians
+			IntPtr pedestrianBaseOffset = ReadFromMemory<IntPtr>(_moduleGCore, (int)Offsets.Main.PEDESTRIAN_BASE);
+			if (pedestrianBaseOffset != IntPtr.Zero) {
+				IntPtr pedestrianOffset1 = ReadFromMemory<IntPtr>(pedestrianBaseOffset, (int)Offsets.PedestrianOffsets.OFFSET_1);
+				if (pedestrianOffset1 != IntPtr.Zero) {
+					IntPtr pedestrianOffset2 = ReadFromMemory<IntPtr>(pedestrianOffset1, (int)Offsets.PedestrianOffsets.OFFSET_2);
+					if (pedestrianOffset2 != IntPtr.Zero) {
+						IntPtr pedestrianCountAddress = pedestrianOffset2 + (int)Offsets.PedestrianOffsets.PEDESTRIAN_COUNT_CURRENT;
+						IntPtr pedestrianArray = ReadFromMemory<IntPtr>(pedestrianOffset2 + (int)Offsets.PedestrianOffsets.PEDESTRIAN_ARRAY);
+
+						if (pedestrianArray != IntPtr.Zero) {
+							int pedestrianCount = ReadFromMemory<int>(pedestrianCountAddress);
+
+							for (int i = 0; i < pedestrianCount; i++) {
+								IntPtr pedestrianPointer = pedestrianArray + i * (int)Offsets.PedestrianOffsets.PEDESTRIAN_SIZE;
+								IntPtr pedestrianPositionXAddress = pedestrianPointer + (int)Offsets.PedestrianOffsets.POSITION_X;
+								IntPtr pedestrianPositionYAddress = pedestrianPointer + (int)Offsets.PedestrianOffsets.POSITION_Y;
+								IntPtr pedestrianPositionZAddress = pedestrianPointer + (int)Offsets.PedestrianOffsets.POSITION_Z;
+
+								Pedestrian pedestrian = new Pedestrian();
+								pedestrian.PositionX = new Pointer<float?>(pedestrianPositionXAddress, ReadFromMemory<float>(pedestrianPositionXAddress));
+								pedestrian.PositionY = new Pointer<float?>(pedestrianPositionYAddress, ReadFromMemory<float>(pedestrianPositionYAddress));
+								pedestrian.PositionZ = new Pointer<float?>(pedestrianPositionZAddress, ReadFromMemory<float>(pedestrianPositionZAddress));
+
+								if (_pedestrianList.Count <= i) {
+									_pedestrianList.Add(pedestrian);
+								} else {
+									_pedestrianList[i] = pedestrian;
+								}
+							}
+
+							// Remove any extra pedestrians left
+							for (int i = pedestrianCount; i < _pedestrianList.Count; i++) {
+								_pedestrianList.RemoveAt(i);
+							}
+						} else {
+							_pedestrianList.Clear();
+						}
+					} else {
+						_pedestrianList.Clear();
+					}
+				} else {
+					_pedestrianList.Clear();
+				}
+			} else {
+				_pedestrianList.Clear();
+			}
+
+			// Get general values
+			IntPtr mapOffsetBase = ReadFromMemory<IntPtr>(_moduleGCore, (int)Offsets.Main.MAP_OFFSET_BASE);
+			_general.Loaded = true;
+			if (mapOffsetBase == IntPtr.Zero) {
+				_general.Clear();
 				return;
 			}
 
-			// Get every Characters's addresses
-			int charactersSpawned = ReadFromMemory<int>(instanceManager, (int)Offsets.InstanceManager.CHARACTERS_SPAWNED);
-			for (int i = 0; i < charactersSpawned; i++) {
-				int characterOffset = i * 4;
-				IntPtr characterManager = ReadFromMemory<IntPtr>(characterManagerArray, characterOffset);
-				if (characterManager == IntPtr.Zero) {
-					charactersSpawned = i;
-					if (i == 0) {
-						_player.Clear();
-					}
-					break;
-				}
-
-				Character character = new Character();
-				character.BaseAddress = ReadFromMemory<IntPtr>(characterManager, (int)Offsets.CharacterManager.CHARACTER);
-				if (character.BaseAddress == IntPtr.Zero) {
-					break;
-				}
-
-				IntPtr offsetAddress;
-				// Model Name
-				offsetAddress = character.GetOffsetAddress((int)Offsets.Character.MODEL_NAME);
-				character.ModelName = new Pointer<string>(offsetAddress, ReadStringFromMemory(offsetAddress));
-
-				// Health
-				offsetAddress = character.GetOffsetAddress((int)Offsets.Character.HEALTH_CURRENT);
-				character.HealthCurrent = new Pointer<float?>(offsetAddress, ReadFromMemory<float>(offsetAddress));
-				offsetAddress = character.GetOffsetAddress((int)Offsets.Character.HEALTH_MAX);
-				character.HealthMax = new Pointer<float?>(offsetAddress, ReadFromMemory<float>(offsetAddress));
-
-				// Power
-				offsetAddress = character.GetOffsetAddress((int)Offsets.Character.POWER_CURRENT);
-				character.PowerCurrent = new Pointer<float?>(offsetAddress, ReadFromMemory<float>(offsetAddress));
-				offsetAddress = character.GetOffsetAddress((int)Offsets.Character.POWER_MAX);
-				character.PowerMax = new Pointer<float?>(offsetAddress, ReadFromMemory<float>(offsetAddress));
-
-				// Rep
-				offsetAddress = character.GetOffsetAddress((int)Offsets.Character.REP_CURRENT);
-				character.RepCurrent = new Pointer<int?>(offsetAddress, ReadFromMemory<int>(offsetAddress));
-				offsetAddress = character.GetOffsetAddress((int)Offsets.Character.REP_MAX);
-				character.RepMax = new Pointer<int?>(offsetAddress, ReadFromMemory<int>(offsetAddress));
-
-				// Position
-				offsetAddress = character.GetOffsetAddress((int)Offsets.Character.TRANSFORM_POSITION_X);
-				character.PositionX = new Pointer<float?>(offsetAddress, ReadFromMemory<float>(offsetAddress));
-				offsetAddress = character.GetOffsetAddress((int)Offsets.Character.TRANSFORM_POSITION_Y);
-				character.PositionY = new Pointer<float?>(offsetAddress, ReadFromMemory<float>(offsetAddress));
-				offsetAddress = character.GetOffsetAddress((int)Offsets.Character.TRANSFORM_POSITION_Z);
-				character.PositionZ = new Pointer<float?>(offsetAddress, ReadFromMemory<float>(offsetAddress));
-
-				if (i == 0) { // Add player
-					_player = character;
-				}
-				else { // Add enemy to list
-					if (_enemyList.Count <= i - 1) {
-						_enemyList.Add(character);
-					}
-					else {
-						_enemyList[i - 1] = character;
+			// Map
+			_general.Map.Clear();
+			IntPtr mapOffset1 = ReadFromMemory<IntPtr>(mapOffsetBase, (int)Offsets.MapOffsets.OFFSET_1);
+			if (mapOffset1 != IntPtr.Zero) {
+				IntPtr mapOffset2 = ReadFromMemory<IntPtr>(mapOffset1, (int)Offsets.MapOffsets.OFFSET_2);
+				if (mapOffset2 != IntPtr.Zero) {
+					IntPtr mapOffset3 = ReadFromMemory<IntPtr>(mapOffset2, (int)Offsets.MapOffsets.OFFSET_3);
+					if (mapOffset3 != IntPtr.Zero) {
+						IntPtr previousMapPointer = ReadFromMemory<IntPtr>(mapOffset3, (int)Offsets.MapOffsets.PREVIOUS_MAP_POINTER);
+						if (previousMapPointer != IntPtr.Zero) {
+							_general.Map = new Pointer<string>(previousMapPointer, ReadStringFromMemory(previousMapPointer));
+						}
 					}
 				}
 			}
 
-			// Remove any extra enemy actors left
-			int enemySpawnedCount = charactersSpawned > 0 ? charactersSpawned - 1 : 0;
-			for (int i = enemySpawnedCount; i < _enemyList.Count; i++) {
-				_enemyList.RemoveAt(i);
+			// Can Pressure
+			_general.CanPressure.Clear();
+			IntPtr canPressureOffsetBase = ReadFromMemory<IntPtr>(_moduleGCore, (int)Offsets.Main.CAN_PRESSURE_BASE);
+			if (canPressureOffsetBase != IntPtr.Zero) {
+				IntPtr canPressureOffset1 = ReadFromMemory<IntPtr>(canPressureOffsetBase, (int)Offsets.CanPressureOffsets.OFFSET_1);
+				if (canPressureOffset1 != IntPtr.Zero) {
+					IntPtr canPressureOffset2 = ReadFromMemory<IntPtr>(canPressureOffset1, (int)Offsets.CanPressureOffsets.OFFSET_2);
+					if (canPressureOffset2 != IntPtr.Zero) {
+						IntPtr canPressurePointer = canPressureOffset2 + (int)Offsets.CanPressureOffsets.CAN_PRESSURE;
+						_general.CanPressure = new Pointer<float?>(canPressurePointer, ReadFromMemory<float>(canPressurePointer));
+					}
+				}
 			}
 		}
 
@@ -370,10 +478,28 @@ namespace GettingUpTrainer
 			}
 		}
 
-		public int EnemySelectedIndex
+		public void SetPedestrianPosition(float? positionX, float? positionY, float? positionZ)
 		{
-			get { return _enemySelectedIndex; }
-			set { _enemySelectedIndex = value; }
+			if (_pedestrianSelectedIndex >= 0) {
+				if (_pedestrianSelectedIndex >= _pedestrianList.Count) {
+					_pedestrianSelectedIndex = -1;
+				}
+				else {
+					Pedestrian pedestrianSelected = _pedestrianList[_pedestrianSelectedIndex];
+
+					if (positionX.HasValue) {
+						WriteToMemory(pedestrianSelected.PositionX.Address, (float)positionX);
+					}
+
+					if (positionY.HasValue) {
+						WriteToMemory(pedestrianSelected.PositionY.Address, (float)positionY);
+					}
+
+					if (positionZ.HasValue) {
+						WriteToMemory(pedestrianSelected.PositionZ.Address, (float)positionZ);
+					}
+				}
+			}
 		}
 
 		public EventHandler<ProcessStatusArgs> ProcessStatusEventHandler;
@@ -391,7 +517,8 @@ namespace GettingUpTrainer
 
 			gameMemoryArgs.PlayerLoaded = _player.BaseAddress != IntPtr.Zero;
 			gameMemoryArgs.EnemyListLoaded = _enemyList.Count > 0;
-
+			gameMemoryArgs.PedestrianListLoaded = _pedestrianList.Count > 0;
+			gameMemoryArgs.GeneralLoaded = _general.Loaded;
 
 			// Player
 			gameMemoryArgs.PlayerModelName = _player.ModelName.Value;
@@ -404,6 +531,7 @@ namespace GettingUpTrainer
 			gameMemoryArgs.PlayerPositionX = _player.PositionX.Value.ToString();
 			gameMemoryArgs.PlayerPositionY = _player.PositionY.Value.ToString();
 			gameMemoryArgs.PlayerPositionZ = _player.PositionZ.Value.ToString();
+			gameMemoryArgs.PlayerRotationYaw = _player.RotationYaw.Value.ToString();
 
 			// Enemy List
 			gameMemoryArgs.EnemyList = _enemyList.Select((i, index) => $"{(index + 1).ToString()}: {i.ModelName.Value}").ToArray();
@@ -420,8 +548,29 @@ namespace GettingUpTrainer
 					gameMemoryArgs.EnemySelectedPositionX = enemySelected.PositionX.Value.ToString();
 					gameMemoryArgs.EnemySelectedPositionY = enemySelected.PositionY.Value.ToString();
 					gameMemoryArgs.EnemySelectedPositionZ = enemySelected.PositionZ.Value.ToString();
+					gameMemoryArgs.EnemySelectedRotationYaw = enemySelected.RotationYaw.Value.ToString();
 				}
 			}
+
+			// Pedestrian List
+			gameMemoryArgs.PedestrianList = _pedestrianList.Select((i, index) => $"Pedestrian {(index + 1).ToString()}").ToArray();
+			gameMemoryArgs.PedestrianCount = _pedestrianList.Count.ToString();
+
+			// Pedestrian Selected
+			if (_pedestrianSelectedIndex > -1) {
+				if (_pedestrianSelectedIndex >= _pedestrianList.Count) {
+					_pedestrianSelectedIndex = -1; // Out of bounds: clear index
+				} else {
+					Pedestrian pedestrianSelected = _pedestrianList[_pedestrianSelectedIndex];
+					gameMemoryArgs.PedestrianSelectedPositionX = pedestrianSelected.PositionX.Value.ToString();
+					gameMemoryArgs.PedestrianSelectedPositionY = pedestrianSelected.PositionY.Value.ToString();
+					gameMemoryArgs.PedestrianSelectedPositionZ = pedestrianSelected.PositionZ.Value.ToString();
+				}
+			}
+
+			// General
+			gameMemoryArgs.GeneralMap = _general.Map.Value;
+			gameMemoryArgs.GeneralCanPressure = _general.CanPressure.Value.ToString();
 
 			MemoryWatchEventHandler.Invoke(this, gameMemoryArgs);
 		}
@@ -440,6 +589,7 @@ namespace GettingUpTrainer
 		public Pointer<float?> PositionX;
 		public Pointer<float?> PositionY;
 		public Pointer<float?> PositionZ;
+		public Pointer<float?> RotationYaw;
 
 		public IntPtr GetOffsetAddress(int offset)
 		{
@@ -459,6 +609,35 @@ namespace GettingUpTrainer
 			PositionX.Clear();
 			PositionY.Clear();
 			PositionZ.Clear();
+			RotationYaw.Clear();
+		}
+	}
+
+	public struct Pedestrian
+	{
+		public Pointer<float?> PositionX;
+		public Pointer<float?> PositionY;
+		public Pointer<float?> PositionZ;
+
+		public void Clear()
+		{
+			PositionX.Clear();
+			PositionY.Clear();
+			PositionZ.Clear();
+		}
+	}
+
+	public struct General
+	{
+		public bool Loaded;
+		public Pointer<string> Map;
+		public Pointer<float?> CanPressure;
+
+		public void Clear()
+		{
+			Loaded = false;
+			Map.Clear();
+			CanPressure.Clear();
 		}
 	}
 
@@ -489,6 +668,8 @@ namespace GettingUpTrainer
 	{
 		public bool PlayerLoaded { get; set; }
 		public bool EnemyListLoaded { get; set; }
+		public bool PedestrianListLoaded { get; set; }
+		public bool GeneralLoaded { get; set; }
 
 		// Player
 		public string PlayerModelName { get; set; }
@@ -501,6 +682,7 @@ namespace GettingUpTrainer
 		public string PlayerPositionX { get; set; }
 		public string PlayerPositionY { get; set; }
 		public string PlayerPositionZ { get; set; }
+		public string PlayerRotationYaw { get; set; }
 
 		// Enemy List
 		public string[] EnemyList { get; set; }
@@ -512,5 +694,19 @@ namespace GettingUpTrainer
 		public string EnemySelectedPositionX { get; set; }
 		public string EnemySelectedPositionY { get; set; }
 		public string EnemySelectedPositionZ { get; set; }
+		public string EnemySelectedRotationYaw { get; set; }
+
+		// Pedestrian List
+		public string[] PedestrianList { get; set; }
+		public string PedestrianCount { get; set; }
+
+		// Pedestrian Selected
+		public string PedestrianSelectedPositionX { get; set; }
+		public string PedestrianSelectedPositionY { get; set; }
+		public string PedestrianSelectedPositionZ { get; set; }
+
+		// General
+		public string GeneralMap { get; set; }
+		public string GeneralCanPressure { get; set; }
 	}
 }

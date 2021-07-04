@@ -1,10 +1,19 @@
-﻿namespace GettingUpTrainer
+﻿using System.Configuration;
+using System.Xml.Serialization;
+
+namespace GettingUpTrainer
 {
-    class Key
+    [SettingsSerializeAs(SettingsSerializeAs.Xml)]
+    public class Key
     {
-        private string keyName;
         private int keyId;
+        private string keyName;
         private bool keyDown;
+
+        public Key()
+        {
+            // Used for XML serialization
+        }
 
         public Key(int keyId, string keyName)
         {
@@ -18,6 +27,10 @@
             {
                 return keyName;
             }
+            set
+            {
+                keyName = value;
+            }
         }
 
         public int Id
@@ -26,8 +39,13 @@
             {
                 return keyId;
             }
+            set
+            {
+                keyId = value;
+            }
         }
 
+        [XmlIgnore]
         public bool IsKeyDown
         {
             get

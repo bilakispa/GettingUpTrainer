@@ -82,15 +82,34 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Forms\AboutForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\AboutForm.Designer.cs">
+      <DependentUpon>AboutForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ManagePlayerPositionsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ManagePlayerPositionsForm.Designer.cs">
+      <DependentUpon>ManagePlayerPositionsForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Forms\OverlayForm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Forms\OverlayForm.Designer.cs">
       <DependentUpon>OverlayForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Forms\SettingsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\SettingsForm.Designer.cs">
+      <DependentUpon>SettingsForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="GameMemory.cs" />
-    <Compile Include="GameOffsets.cs" />
+    <Compile Include="Constants.cs" />
     <Compile Include="Imports.cs" />
+    <Compile Include="PlayerPosition.cs" />
     <Compile Include="Input\Key.cs" />
     <Compile Include="Input\KeyManager.cs" />
     <Compile Include="Program.cs" />
@@ -101,8 +120,17 @@
     <Compile Include="Forms\UserInterfaceForm.Designer.cs">
       <DependentUpon>UserInterfaceForm.cs</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="Forms\AboutForm.resx">
+      <DependentUpon>AboutForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\ManagePlayerPositionsForm.resx">
+      <DependentUpon>ManagePlayerPositionsForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\OverlayForm.resx">
       <DependentUpon>OverlayForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\SettingsForm.resx">
+      <DependentUpon>SettingsForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -120,6 +148,7 @@
     <None Include="app.config" />
     <None Include="app.manifest" />
     <None Include="packages.config" />
+    <None Include="Properties\DataSources\PlayerPosition.datasource" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -132,6 +161,10 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Fasm.NET.xml" />
+    <None Include="Resources\icon_about.png" />
+    <None Include="Resources\icon_clear.png" />
+    <None Include="Resources\icon_edit.png" />
+    <None Include="Resources\icon_settings.png" />
     <Content Include="trainer_icon.ico" />
   </ItemGroup>
   <ItemGroup>

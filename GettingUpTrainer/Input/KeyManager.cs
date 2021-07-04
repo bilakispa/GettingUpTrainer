@@ -2,72 +2,79 @@
 using System.Threading;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Linq;
 
 namespace GettingUpTrainer
 {
-    class KeyManager
+    public class KeyManager
     {
         // Keys holder
-        private Dictionary<int, Key> keys;
+        private Dictionary<string, Key> keys;
 
         // Update thread
         private Thread thread;
         private int interval = 20; // ms
 
         // Keys events
-        public delegate void KeyHandler(int Id, string Name);
+        public delegate void KeyHandler(string ControlName, int Id, string Name);
         public event KeyHandler KeyUpEvent;
         public event KeyHandler KeyDownEvent;
 
         // Key Up
-        protected void OnKeyUp(int Id, string Name)
+        protected void OnKeyUp(string ControlName, int Id, string Name)
         {
             if (KeyUpEvent != null) {
-                KeyUpEvent(Id, Name);
+                KeyUpEvent(ControlName, Id, Name);
             }
         }
 
         // Key Down
-        protected void OnKeyDown(int Id, string Name)
+        protected void OnKeyDown(string ControlName, int Id, string Name)
         {
             if (KeyDownEvent != null) {
-                KeyDownEvent(Id, Name);
+                KeyDownEvent(ControlName, Id, Name);
             }
         }
 
         // Init
         public KeyManager()
         {
-            keys = new Dictionary<int, Key>();
+            keys = new Dictionary<string, Key>();
             thread = new Thread(new ParameterizedThreadStart(Update));
             thread.Start();
         }
 
         // Add key
-        public void AddKey(int keyId, string keyName)
+        public void AddKey(string controlName, int keyId, string keyName)
         {
-            if (!keys.ContainsKey(keyId)) {
-                keys.Add(keyId, new Key(keyId, keyName));
+            if (!keys.ContainsKey(controlName)) {
+                keys.Add(controlName, new Key(keyId, keyName));
             }
         }
 
-        // Add key
-        public void AddKey(System.Windows.Forms.Keys key)
+        public void AddKey(string controlName, Key key)
         {
-            int keyId = (int)key;
-            if (!keys.ContainsKey(keyId)) {
-                keys.Add(keyId, new Key(keyId, key.ToString()));
+            if ((key != null) && !keys.ContainsKey(controlName)) {
+                keys.Add(controlName, key);
             }
         }
 
-        // Is Key Down
-        public bool IsKeyDown(int keyId)
+        // Remove Key
+        public void RemoveKey(string controlName)
+        {
+            if (keys.ContainsKey(controlName)) {
+                keys.Remove(controlName);
+            }
+        }
+
+        // Get Key
+        public Key GetKey(string controlName)
         {
             Key value;
-            if (keys.TryGetValue(keyId, out value)) {
-                return value.IsKeyDown;
+            if (keys.TryGetValue(controlName, out value)) {
+                return value;
             }
-            return false;
+            return null;
         }
 
         // Update Thread
@@ -81,12 +88,12 @@ namespace GettingUpTrainer
                             if (Convert.ToBoolean(Hook.GetKeyState(key.Id) & (int)Hook.KEYS.KEY_PRESSED)) {
                                 if (!key.IsKeyDown) {
                                     key.IsKeyDown = true;
-                                    OnKeyDown(key.Id, key.Name);
+                                    OnKeyDown(keys.FirstOrDefault(x => x.Value == key).Key, key.Id, key.Name);
                                 }
                             } else {
                                 if (key.IsKeyDown) {
                                     key.IsKeyDown = false;
-                                    OnKeyUp(key.Id, key.Name);
+                                    OnKeyUp(keys.FirstOrDefault(x => x.Value == key).Key, key.Id, key.Name);
                                 }
                             }
                         }

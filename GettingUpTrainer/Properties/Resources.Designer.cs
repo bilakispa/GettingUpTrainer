@@ -61,11 +61,11 @@ namespace GettingUpTrainer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to 2.0.
+        ///   Looks up a localized string similar to Click to cancel....
         /// </summary>
-        internal static string AppVersion {
+        internal static string ClickToCancel {
             get {
-                return ResourceManager.GetString("AppVersion", resourceCulture);
+                return ResourceManager.GetString("ClickToCancel", resourceCulture);
             }
         }
         
@@ -106,6 +106,46 @@ namespace GettingUpTrainer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap icon_about {
+            get {
+                object obj = ResourceManager.GetObject("icon_about", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap icon_clear {
+            get {
+                object obj = ResourceManager.GetObject("icon_clear", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap icon_edit {
+            get {
+                object obj = ResourceManager.GetObject("icon_edit", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap icon_settings {
+            get {
+                object obj = ResourceManager.GetObject("icon_settings", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Loaded.
         /// </summary>
         internal static string Loaded {
@@ -120,6 +160,15 @@ namespace GettingUpTrainer.Properties {
         internal static string Max {
             get {
                 return ResourceManager.GetString("Max", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (none).
+        /// </summary>
+        internal static string None {
+            get {
+                return ResourceManager.GetString("None", resourceCulture);
             }
         }
         

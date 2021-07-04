@@ -102,7 +102,7 @@ namespace GettingUpTrainer.Forms
 			_graphics.TextRenderingHint = TextRenderingHint.SingleBitPerPixelGridFit;
 
 			// Basic string draw
-			String appString = String.Format("{0} [v{1}]", Properties.Resources.GettingUpTrainer, Properties.Resources.AppVersion);
+			String appString = String.Format("{0} [v{1}]", Properties.Resources.GettingUpTrainer, Properties.Settings.Default.AppVersion);
 			int widthOffset = 8;
 			int heightOffset = 31;
 

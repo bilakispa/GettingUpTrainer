@@ -1,30 +1,23 @@
-﻿using Binarysharp.MemoryManagement;
-using GettingUpTrainer.Forms;
-using GettingUpTrainer.Properties;
+﻿using GettingUpTrainer.Forms;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Timers;
 using System.Windows.Forms;
 
 namespace GettingUpTrainer
 {
-	public partial class UserInterfaceForm : Form
+    public partial class UserInterfaceForm : Form
 	{
         private KeyManager _keyManager;
         private GameMemory _gameMemory;
         private OverlayForm _overlayForm = new OverlayForm();
+        private bool modalOpen = false;
 
         public UserInterfaceForm()
 		{
 			InitializeComponent();
+
+            // Fix the right padding on the status strip still taking account for the grip, even though it's disabled
+            statusStrip.Padding = new Padding(statusStrip.Padding.Left, statusStrip.Padding.Top, statusStrip.Padding.Left, statusStrip.Padding.Bottom);
         }
 
 		private void UserInterface_Load(object sender, EventArgs e)
@@ -38,8 +31,23 @@ namespace GettingUpTrainer
 
             // Init Key Listener
             _keyManager = new KeyManager();
-            _keyManager.AddKey(Keys.F12);
             _keyManager.KeyDownEvent += new KeyManager.KeyHandler(HandleKeyDownEvent);
+
+            // Load settings
+            _keyManager.AddKey(KeyControls.PLAYER_HEALTH, Properties.Settings.Default.HotkeyPlayerHealth);
+            _keyManager.AddKey(KeyControls.PLAYER_POWER, Properties.Settings.Default.HotkeyPlayerPower);
+            _keyManager.AddKey(KeyControls.PLAYER_REP, Properties.Settings.Default.HotkeyPlayerRep);
+            _keyManager.AddKey(KeyControls.PLAYER_POSITION, Properties.Settings.Default.HotkeyPlayerPosition);
+            _keyManager.AddKey(KeyControls.ENEMY_HEALTH, Properties.Settings.Default.HotkeyEnemyHealth);
+            _keyManager.AddKey(KeyControls.ENEMY_POSITION, Properties.Settings.Default.HotkeyEnemyPosition);
+            _keyManager.AddKey(KeyControls.PEDESTRIAN_POSITION, Properties.Settings.Default.HotkeyPedestrianPosition);
+
+            // Load saved positions
+            lbPlayerPositions.DisplayMember = "Name";
+            PlayerPositionCollection playerPositions = Properties.Settings.Default.PlayerPositions;
+            if (playerPositions != null) {
+                lbPlayerPositions.DataSource = playerPositions.PlayerPositions;
+            }
         }
 
         private void UserInterface_FormClosing(object sender, FormClosingEventArgs e)
@@ -53,10 +61,10 @@ namespace GettingUpTrainer
                 this.BeginInvoke((MethodInvoker)delegate
                 {
                     if (args.Loaded) {
-                        lblAppStatusValue.Text = Resources.Loaded;
+                        lblAppStatusValue.Text = Properties.Resources.Loaded;
                     }
                     else {
-                        lblAppStatusValue.Text = Resources.WaitingForGettingUpExe;
+                        lblAppStatusValue.Text = Properties.Resources.WaitingForGettingUpExe;
                     }
                 });
             }
@@ -68,23 +76,28 @@ namespace GettingUpTrainer
                 this.BeginInvoke((MethodInvoker)delegate
                 {
                     gbPlayer.Enabled = args.PlayerLoaded;
+                    gbPlayerPositions.Enabled = args.PlayerLoaded;
+                    btnPlayerPositions.Enabled = args.PlayerLoaded;
                     gbEnemy.Enabled = args.EnemyListLoaded;
+                    gbPedestrian.Enabled = args.PedestrianListLoaded;
+                    gbGeneral.Enabled = args.GeneralLoaded;
 
                     // Player
-                    lblPlayerValueModelName.Text = args.PlayerModelName;
-                    lblPlayerValueHealthCurrent.Text = args.PlayerHealthCurrent;
-                    lblPlayerValueHealthMax.Text = args.PlayerHealthMax;
-                    lblPlayerValuePowerCurrent.Text = args.PlayerPowerCurrent;
-                    lblPlayerValuePowerMax.Text = args.PlayerPowerMax;
-                    lblPlayerValueRepCurrent.Text = args.PlayerRepCurrent;
-                    lblPlayerValueRepMax.Text = args.PlayerRepMax;
-                    lblPlayerValuePositionX.Text = args.PlayerPositionX;
-                    lblPlayerValuePositionY.Text = args.PlayerPositionY;
-                    lblPlayerValuePositionZ.Text = args.PlayerPositionZ;
+                    lblPlayerModelNameValue.Text = args.PlayerModelName;
+                    lblPlayerHealthCurrentValue.Text = args.PlayerHealthCurrent;
+                    lblPlayerHealthMaxValue.Text = args.PlayerHealthMax;
+                    lblPlayerPowerCurrentValue.Text = args.PlayerPowerCurrent;
+                    lblPlayerPowerMaxValue.Text = args.PlayerPowerMax;
+                    lblPlayerRepCurrentValue.Text = args.PlayerRepCurrent;
+                    lblPlayerRepMaxValue.Text = args.PlayerRepMax;
+                    lblPlayerPositionXValue.Text = args.PlayerPositionX;
+                    lblPlayerPositionYValue.Text = args.PlayerPositionY;
+                    lblPlayerPositionZValue.Text = args.PlayerPositionZ;
+                    lblPlayerRotationYawValue.Text = args.PlayerRotationYaw;
 
                     // Enemy List
                     if (cbEnemySelected.Items.Count != args.EnemyList.Length) {
-                        pnlEnemySelected.Enabled = false;
+                        tblEnemySelected.Enabled = false;
                         cbEnemySelected.Items.Clear();
                         cbEnemySelected.Items.AddRange(args.EnemyList);
                         _gameMemory.EnemySelectedIndex = -1;
@@ -92,30 +105,60 @@ namespace GettingUpTrainer
                     lblEnemyCountValue.Text = args.EnemyCount;
 
                     // Enemy Selected
-                    lblEnemyValueHealthCurrent.Text = args.EnemySelectedHealthCurrent;
-                    lblEnemyValueHealthMax.Text = args.EnemySelectedHealthMax;
-                    lblEnemyValuePositionX.Text = args.EnemySelectedPositionX;
-                    lblEnemyValuePositionY.Text = args.EnemySelectedPositionY;
-                    lblEnemyValuePositionZ.Text = args.EnemySelectedPositionZ;
+                    lblEnemyHealthCurrentValue.Text = args.EnemySelectedHealthCurrent;
+                    lblEnemyHealthMaxValue.Text = args.EnemySelectedHealthMax;
+                    lblEnemyPositionXValue.Text = args.EnemySelectedPositionX;
+                    lblEnemyPositionYValue.Text = args.EnemySelectedPositionY;
+                    lblEnemyPositionZValue.Text = args.EnemySelectedPositionZ;
+                    lblEnemyRotationYawValue.Text = args.EnemySelectedRotationYaw;
+
+                    // Pedestrian List
+                    if (cbPedestrianSelected.Items.Count != args.PedestrianList.Length) {
+                        tblPedestrianSelected.Enabled = false;
+                        cbPedestrianSelected.Items.Clear();
+                        cbPedestrianSelected.Items.AddRange(args.PedestrianList);
+                        _gameMemory.PedestrianSelectedIndex = -1;
+                    }
+                    lblPedestrianCountValue.Text = args.PedestrianCount;
+                    
+                    // Pedestrian Selected
+                    lblPedestrianPositionXValue.Text = args.PedestrianSelectedPositionX;
+                    lblPedestrianPositionYValue.Text = args.PedestrianSelectedPositionY;
+                    lblPedestrianPositionZValue.Text = args.PedestrianSelectedPositionZ;
+
+                    // General
+                    lblGeneralMapValue.Text = args.GeneralMap;
+                    lblGeneralCanPressureValue.Text = args.GeneralCanPressure;
                 });
             }
         }
 
-        private void HandleKeyDownEvent(int keyId, string keyName)
+        private void HandleKeyDownEvent(string controlName, int keyId, string keyName)
         {
-            switch ((Keys)keyId) {
-                case Keys.F9:
-                    btnPlayerHealth_Click(this, EventArgs.Empty);
-                    break;
-                case Keys.F10:
-                    btnPlayerPower_Click(this, EventArgs.Empty);
-                    break;
-                case Keys.F11:
-                    btnPlayerRep_Click(this, EventArgs.Empty);
-                    break;
-                case Keys.F12:
-                    btnPlayerPosition_Click(this, EventArgs.Empty);
-                    break;
+            if (!modalOpen) {
+                switch (controlName) {
+                    case KeyControls.PLAYER_HEALTH:
+                        btnPlayerHealth_Click(this, EventArgs.Empty);
+                        break;
+                    case KeyControls.PLAYER_POWER:
+                        btnPlayerPower_Click(this, EventArgs.Empty);
+                        break;
+                    case KeyControls.PLAYER_REP:
+                        btnPlayerRep_Click(this, EventArgs.Empty);
+                        break;
+                    case KeyControls.PLAYER_POSITION:
+                        btnPlayerPosition_Click(this, EventArgs.Empty);
+                        break;
+                    case KeyControls.ENEMY_HEALTH:
+                        btnEnemyHealth_Click(this, EventArgs.Empty);
+                        break;
+                    case KeyControls.ENEMY_POSITION:
+                        btnEnemyPosition_Click(this, EventArgs.Empty);
+                        break;
+                    case KeyControls.PEDESTRIAN_POSITION:
+                        btnPedestrianPosition_Click(this, EventArgs.Empty);
+                        break;
+                }
             }
         }
 
@@ -189,7 +232,7 @@ namespace GettingUpTrainer
 
         private void cbEnemySelected_SelectedIndexChanged(object sender, EventArgs e)
         {
-            pnlEnemySelected.Enabled = true;
+            tblEnemySelected.Enabled = true;
             _gameMemory.EnemySelectedIndex = cbEnemySelected.SelectedIndex;
         }
 
@@ -227,6 +270,77 @@ namespace GettingUpTrainer
             }
 
             _gameMemory.SetEnemyPosition(positionX, positionY, positionZ);
+        }
+
+        private void cbPedestrianSelected_SelectedIndexChanged_1(object sender, EventArgs e)
+        {
+            tblPedestrianSelected.Enabled = true;
+            _gameMemory.PedestrianSelectedIndex = cbPedestrianSelected.SelectedIndex;
+        }
+
+        private void btnPedestrianPosition_Click(object sender, EventArgs e)
+        {
+            float? positionX = null, positionY = null, positionZ = null;
+            float tmpOut;
+
+            if (float.TryParse(txtPedestrianPositionX.Text, out tmpOut)) {
+                positionX = tmpOut;
+            }
+
+            if (float.TryParse(txtPedestrianPositionY.Text, out tmpOut)) {
+                positionY = tmpOut;
+            }
+
+            if (float.TryParse(txtPedestrianPositionZ.Text, out tmpOut)) {
+                positionZ = tmpOut;
+            }
+
+            _gameMemory.SetPedestrianPosition(positionX, positionY, positionZ);
+        }
+
+        private void btnSettings_Click(object sender, EventArgs e)
+        {
+            using (SettingsForm settingsForm = new SettingsForm(_keyManager)) {
+                modalOpen = true;
+                settingsForm.ShowDialog(this);
+            }
+
+            modalOpen = false;
+        }
+
+        private void btnAbout_Click(object sender, EventArgs e)
+        {
+            using (AboutForm aboutForm = new AboutForm()) {
+                modalOpen = true;
+                aboutForm.ShowDialog(this);
+            }
+
+            modalOpen = false;
+        }
+
+        private void lbCustomPositions_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            int index = lbPlayerPositions.IndexFromPoint(e.Location);
+            if (index != ListBox.NoMatches) {
+                PlayerPosition playerPos = lbPlayerPositions.SelectedItem as PlayerPosition;
+
+                txtPlayerPositionX.Text = playerPos.PositionX;
+                txtPlayerPositionY.Text = playerPos.PositionY;
+                txtPlayerPositionZ.Text = playerPos.PositionZ;
+            }
+        }
+
+        private void btnPlayerPositions_Click(object sender, EventArgs e)
+        {
+            using (ManagePlayerPositionsForm managePlayerPositionsForm = new ManagePlayerPositionsForm()) {
+                modalOpen = true;
+                managePlayerPositionsForm.ShowDialog(this);
+            }
+
+            modalOpen = false;
+
+            PlayerPositionCollection playerPositions = Properties.Settings.Default.PlayerPositions;
+            lbPlayerPositions.DataSource = playerPositions.PlayerPositions;
         }
     }
 }
